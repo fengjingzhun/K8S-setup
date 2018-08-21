@@ -3,8 +3,8 @@
 ## 编写配置文件 ##
 # 新建授权文件 #
 cat << EOF > kubernetes-traefik.rbac.yaml
-kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
 metadata:
   name: traefik-ingress-controller
 rules:
@@ -26,11 +26,9 @@ rules:
       - get
       - list
       - watch
-
 ---
-
-kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
 metadata:
   name: traefik-ingress-controller
 roleRef:
@@ -49,9 +47,7 @@ kind: ServiceAccount
 metadata:
   name: traefik-ingress-controller
   namespace: kube-system
-
 ---
-
 kind: DaemonSet
 apiVersion: extensions/v1beta1
 metadata:
@@ -74,7 +70,10 @@ spec:
         ports:
         - name: http
           containerPort: 80
-          hostPort: 80
+          hostPort: 80 #宿主节点的端口
+        - name: https
+          containerPort: 443
+          hostPort: 443 #宿主节点的端口
         - name: admin
           containerPort: 8080
         securityContext:
@@ -87,9 +86,9 @@ spec:
         - --api
         - --kubernetes
         - --logLevel=INFO
-
+      nodeSelector:
+        edgenode: "true" #只部署在边缘节点
 ---
-
 kind: Service
 apiVersion: v1
 metadata:
@@ -101,7 +100,10 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      name: web
+      name: http
+    - protocol: TCP
+      port: 433
+      name: https
     - protocol: TCP
       port: 8080
       name: admin
@@ -119,9 +121,7 @@ spec:
   ports:
   - port: 80
     targetPort: 8080
-
 ---
-
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -138,7 +138,6 @@ spec:
           serviceName: traefik-web-ui
           servicePort: 80
 EOF
-echo 192.168.100.22 traefik-ui > /etc/hosts
 
 ## 执行配置文件 ##
 # 授权 #
@@ -148,7 +147,18 @@ kubectl create -f kubernetes-traefik.ds.yaml
 # 界面 #
 kubectl create -f kubernetes-traefik.ui.yaml
 
+## 清理配置文件 ##
+# 授权 #
+rm -rf kubernetes-traefik.rbac.yaml
+# 部署 #
+rm -rf kubernetes-traefik.ds.yaml
+# 界面 #
+rm -rf kubernetes-traefik.ui.yaml
 
+## 设置边缘节点 ##
+kubectl label nodes vm3 edgenode=true
+
+#----------------------------------------------------------------------------------------------------------------------#
 cat << EOF > prometheus-ingress.yaml
 apiVersion: extensions/v1beta1
 kind: Ingress
@@ -166,10 +176,34 @@ spec:
           servicePort: 3000
 EOF
 kubectl create -f prometheus-ingress.yaml
-echo 192.168.100.23 grafana-ui > /etc/hosts
+rm -rf prometheus-ingress.yaml
 
-# traefik-ui.io -> VIP(IPVS+keepalived) -> Edge node(nodeSelector: edgenode: "true") -> traefik-web-ui -> traefik-ingress-service
+cat << EOF > gitlab-ce-ingress.yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: gitlab-ce
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: gitlab.tele-sing.com
+    http:
+      paths:
+      - backend:
+          serviceName: helm-gitlab-ce-gitlab-ce
+          servicePort: 80
+  - host: gitlabs.tele-sing.com
+    http:
+      paths:
+      - backend:
+          serviceName: helm-gitlab-ce-gitlab-ce
+          servicePort: 443
+EOF
+kubectl create -f gitlab-ce-ingress.yaml
+rm -rf gitlab-ce-ingress.yaml
+
+# domainName -(DNS)-> VIP -(IPVS+keepalived)-> EdgeNode:hostPort -(DS)-> traefik:containerPort -(Ingress)-> serviceName:servicePort/path
 # 如果在内网：将浏览器所在设备的hosts文件中添加：
 # a.b.c.d traefik-ui.io
-
-
