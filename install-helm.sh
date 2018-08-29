@@ -62,16 +62,20 @@ helm install monocular/monocular --name my-monocular
 
 
 
+# 安装jenkins #
+helm install --name helm-jenkins\
+ --set Master.ServiceType=ClusterIP\
+ stable/jenkins
 
-
-
-
-
+# 安装gitlab-ce #
 helm install --name helm-gitlab-ce\
- --set externalUrl=http://gitlab.tele-sing.com,serviceType=ClusterIP\
+ --set serviceType=ClusterIP,externalUrl=http://gitlab.tele-sing.com\
  stable/gitlab-ce
 
-
+# 安装sonatype-nexus #
+helm install --name helm-sonatype-nexus\
+ --set service.type=ClusterIP\
+ stable/sonatype-nexus
 
 
 

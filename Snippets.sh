@@ -9,6 +9,8 @@
 #pod：kube-apiserver @ master
 #pod：kube-controller-manager @ master
 
+kubectl port-forward $POD_NAME 8081:8081
+
 journalctl -u kubelet -f
 
 kubectl logs my-artifactory-postgresql-7dcdbbd6d-hngnb

@@ -1,0 +1,19 @@
+---
+# Traefik-Ingress #
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: sonatype-nexus
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: nexus.tele-sing.com
+    http:
+      paths:
+      - path:
+        backend:
+          serviceName: helm-sonatype-nexus-sonatype-nexus
+          servicePort: 8081
+...

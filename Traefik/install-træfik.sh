@@ -178,32 +178,6 @@ EOF
 kubectl create -f prometheus-ingress.yaml
 rm -rf prometheus-ingress.yaml
 
-cat << EOF > gitlab-ce-ingress.yaml
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: gitlab-ce
-  namespace: default
-  annotations:
-    kubernetes.io/ingress.class: traefik
-spec:
-  rules:
-  - host: gitlab.tele-sing.com
-    http:
-      paths:
-      - backend:
-          serviceName: helm-gitlab-ce-gitlab-ce
-          servicePort: 80
-  - host: gitlabs.tele-sing.com
-    http:
-      paths:
-      - backend:
-          serviceName: helm-gitlab-ce-gitlab-ce
-          servicePort: 443
-EOF
-kubectl create -f gitlab-ce-ingress.yaml
-rm -rf gitlab-ce-ingress.yaml
-
 # domainName -(DNS)-> VIP -(IPVS+keepalived)-> EdgeNode:hostPort -(DS)-> traefik:containerPort -(Ingress)-> serviceName:servicePort/path
 # 如果在内网：将浏览器所在设备的hosts文件中添加：
 # a.b.c.d traefik-ui.io
